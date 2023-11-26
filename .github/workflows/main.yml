@@ -1,7 +1,7 @@
 name: CI
 on:
   push:
-    branches: ["master"]
+    branches: [ "master" ]
 
 jobs:
   build:
@@ -39,6 +39,7 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           password: ${{ secrets.SERVER_PASSWORD }}
           port: ${{ secrets.SERVER_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             whoami
             docker stop api-wowrack || true && docker rm api-wowrack || true
