@@ -3,6 +3,7 @@ package main
 import (
 	"WowrackCustomerAppRestfulAPI/controllers"
 	"WowrackCustomerAppRestfulAPI/database"
+	"WowrackCustomerAppRestfulAPI/middlewares"
 	"WowrackCustomerAppRestfulAPI/models"
 	"github.com/gin-gonic/gin"
 	"log"
@@ -19,7 +20,7 @@ func main() {
 	}
 	// Automigrate the User model
 	// AutoMigrate() automatically migrates our schema, to keep our schema upto date.
-	database.GlobalDB.AutoMigrate(&models.User{})
+	database.GlobalDB.AutoMigrate(&models.User{}, &models.Articles{}, &models.Hotspot{})
 	// Set up the router
 	r := setupRouter()
 	// Start the server
@@ -44,13 +45,17 @@ func setupRouter() *gin.Engine {
 			public.POST("/login", controllers.Login)
 			// Add the signup route
 			public.POST("/signup", controllers.Signup)
+			//Add the logout route
+			//public.POST("/logout", controllers.Logout)
 		}
 		// Add the signup route
-		//protected := api.Group("/protected").Use(middlewares.Authz())
-		//{
-		//	// Add the profile route
-		//	protected.GET("/profile", controllers.Profile)
-		//}
+		protected := api.Group("/protected").Use(middlewares.Authz())
+		{
+			// Add the profile route
+			protected.GET("/profile", controllers.Profile)
+			protected.GET("/articles", controllers.Article)
+			protected.GET("/hotspots", controllers.Hotspot)
+		}
 	}
 	// Return the router
 	return r

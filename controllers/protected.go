@@ -41,3 +41,55 @@ func Profile(c *gin.Context) {
 	// Return the user profile with a 200 status code
 	c.JSON(200, user)
 }
+func Article(c *gin.Context) {
+	var articles []models.Articles
+	var user models.User
+
+	// Get the email from the authorization middleware
+	email, _ := c.Get("email")
+	result := database.GlobalDB.Where("email = ?", email.(string)).First(&user)
+
+	// Retrieve all articles from the database
+	result = database.GlobalDB.Find(&articles)
+
+	if result.Error != nil {
+		c.JSON(500, gin.H{
+			"Error": "Could Not Get Articles",
+		})
+		c.Abort()
+		return
+	}
+
+	count := int64(len(articles))
+	c.JSON(200, gin.H{
+		"status":       true,
+		"article_size": count,
+		"articles":     articles,
+	})
+}
+func Hotspot(c *gin.Context) {
+	var hotspots []models.Hotspot
+	var user models.User
+
+	// Get the email from the authorization middleware
+	email, _ := c.Get("email")
+	result := database.GlobalDB.Where("email = ?", email.(string)).First(&user)
+
+	// Retrieve all articles from the database
+	result = database.GlobalDB.Find(&hotspots)
+
+	if result.Error != nil {
+		c.JSON(500, gin.H{
+			"Error": "Could Not Get Hotspot",
+		})
+		c.Abort()
+		return
+	}
+
+	count := int64(len(hotspots))
+	c.JSON(200, gin.H{
+		"status":       true,
+		"hotspot_size": count,
+		"hotspot":      hotspots,
+	})
+}

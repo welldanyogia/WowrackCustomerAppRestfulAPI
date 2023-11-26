@@ -15,6 +15,9 @@ type User struct {
 	Name     string `json:"name" binding:"required"`
 	Email    string `json:"email" binding:"required" gorm:"unique"`
 	Password string `json:"password" binding:"required"`
+	Address  string `json:"address" binding:"required"`
+	Phone    string `json:"phone" binding:"required"`
+	Token    string `json:"token"`
 }
 
 // CreateUserRecord creates a user record in the database
@@ -22,6 +25,15 @@ type User struct {
 // It returns an error if there is an issue creating the user record
 func (user *User) CreateUserRecord() error {
 	result := database.GlobalDB.Create(&user)
+	if result.Error != nil {
+		return result.Error
+	}
+	return nil
+}
+
+// UpdateUserToken updates the user's token in the database
+func (u *User) UpdateUserToken() error {
+	result := database.GlobalDB.Model(u).Update("token", u.Token)
 	if result.Error != nil {
 		return result.Error
 	}

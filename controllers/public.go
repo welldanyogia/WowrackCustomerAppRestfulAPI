@@ -4,6 +4,7 @@ import (
 	"WowrackCustomerAppRestfulAPI/auth"
 	"WowrackCustomerAppRestfulAPI/database"
 	"WowrackCustomerAppRestfulAPI/models"
+	"errors"
 	"log"
 
 	"github.com/gin-gonic/gin"
@@ -16,12 +17,17 @@ type LoginPayload struct {
 	Email    string `json:"email" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
+type RegisterPayload struct {
+	Email    string `json:"email" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
 
 // LoginResponse token response
 // LoginResponse is a struct that contains the fields for a user's login response
 type LoginResponse struct {
-	Token        string `json:"token"`
-	RefreshToken string `json:"refreshtoken"`
+	Status int    `json:"status"`
+	Token  string `json:"token"`
+	//RefreshToken string `json:"refreshtoken"`
 }
 
 // Signup is a function that handles user signup
@@ -36,7 +42,8 @@ func Signup(c *gin.Context) {
 	if err != nil {
 		log.Println(err)
 		c.JSON(400, gin.H{
-			"Error": "Invalid Inputs ",
+			"Status": 400,
+			"Error":  "Invalid Inputs ",
 		})
 		c.Abort()
 		return
@@ -45,21 +52,38 @@ func Signup(c *gin.Context) {
 	if err != nil {
 		log.Println(err.Error())
 		c.JSON(500, gin.H{
-			"Error": "Error Hashing Password",
+			"Status": 500,
+			"Error":  "Error Hashing Password",
 		})
 		c.Abort()
 		return
 	}
+	// Check if the email is already registered
+	existingUser := models.User{}
+	result := database.GlobalDB.Where("email = ?", user.Email).First(&existingUser)
+	if !errors.Is(gorm.ErrRecordNotFound, result.Error) {
+		c.JSON(200, gin.H{
+			"Status": 200,
+			"Error":  "Email has been registered",
+		})
+		c.Abort()
+		return
+	}
+
+	// Continue with user registration if the email is not registered
+
 	err = user.CreateUserRecord()
 	if err != nil {
 		log.Println(err)
 		c.JSON(500, gin.H{
-			"Error": "Error Creating User",
+			"Status": 500,
+			"Error":  "Error Creating User",
 		})
 		c.Abort()
 		return
 	}
 	c.JSON(200, gin.H{
+		"Status":  200,
 		"Message": "Sucessfully Register",
 	})
 }
@@ -76,7 +100,8 @@ func Login(c *gin.Context) {
 	err := c.ShouldBindJSON(&payload)
 	if err != nil {
 		c.JSON(400, gin.H{
-			"Error": "Invalid Inputs",
+			"Status": 400,
+			"Error":  "Invalid Inputs",
 		})
 		c.Abort()
 		return
@@ -84,7 +109,8 @@ func Login(c *gin.Context) {
 	result := database.GlobalDB.Where("email = ?", payload.Email).First(&user)
 	if result.Error == gorm.ErrRecordNotFound {
 		c.JSON(401, gin.H{
-			"Error": "Invalid User Credentials",
+			"Status": 401,
+			"Error":  "Invalid Email Credentials",
 		})
 		c.Abort()
 		return
@@ -93,7 +119,8 @@ func Login(c *gin.Context) {
 	if err != nil {
 		log.Println(err)
 		c.JSON(401, gin.H{
-			"Error": "Invalid User Credentials",
+			"Status": 401,
+			"Error":  "Invalid Password Credentials",
 		})
 		c.Abort()
 		return
@@ -108,23 +135,85 @@ func Login(c *gin.Context) {
 	if err != nil {
 		log.Println(err)
 		c.JSON(500, gin.H{
-			"Error": "Error Signing Token",
+			"Status": 500,
+			"Error":  "Error Signing Token",
 		})
 		c.Abort()
 		return
 	}
-	signedtoken, err := jwtWrapper.RefreshToken(user.Email)
+	//signedtoken, err := jwtWrapper.RefreshToken(user.Email)
 	if err != nil {
 		log.Println(err)
 		c.JSON(500, gin.H{
-			"Error": "Error Signing Token",
+			"Status": 500,
+			"Error":  "Error Signing Token",
 		})
 		c.Abort()
 		return
 	}
 	tokenResponse := LoginResponse{
-		Token:        signedToken,
-		RefreshToken: signedtoken,
+		Token: signedToken,
+		//RefreshToken: signedtoken,
 	}
-	c.JSON(200, tokenResponse)
+	user.Token = signedToken
+	err = user.UpdateUserToken()
+	if err != nil {
+		log.Println(err)
+		c.JSON(500, gin.H{
+			"Status": 500,
+			"Error":  "Error Updating User",
+		})
+		c.Abort()
+		return
+	}
+	c.JSON(200, gin.H{
+		"Status":        200,
+		"email":         user.Email,
+		"name":          user.Name,
+		"tokenResponse": tokenResponse,
+	})
 }
+
+//func Logout(c *gin.Context) {
+//	// Get user from the context (assuming you have a middleware that sets the user in the context)
+//	user, exists := c.Get("user")
+//	if !exists {
+//		c.JSON(401, gin.H{
+//			"Status": 401,
+//			"Error":  "Unauthorized",
+//		})
+//		c.Abort()
+//		return
+//	}
+//
+//	// Convert user to models.User type
+//	currentUser, ok := user.(*models.User)
+//	if !ok {
+//		c.JSON(500, gin.H{
+//			"Status": 500,
+//			"Error":  "Error retrieving user information",
+//		})
+//		c.Abort()
+//		return
+//	}
+//
+//	// Remove the token from the user object
+//	currentUser.Token = ""
+//
+//	// Update the user in the database
+//	err := currentUser.UpdateUserToken()
+//	if err != nil {
+//		log.Println(err)
+//		c.JSON(500, gin.H{
+//			"Status": 500,
+//			"Error":  "Error updating user token",
+//		})
+//		c.Abort()
+//		return
+//	}
+//
+//	c.JSON(200, gin.H{
+//		"Status":  200,
+//		"Message": "Logout successful",
+//	})
+//}

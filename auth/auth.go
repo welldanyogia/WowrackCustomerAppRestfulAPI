@@ -2,8 +2,6 @@ package auth
 
 import (
 	"errors"
-	"time"
-
 	jwt "github.com/dgrijalva/jwt-go"
 )
 
@@ -29,7 +27,8 @@ func (j *JwtWrapper) GenerateToken(email string) (signedToken string, err error)
 	claims := &JwtClaim{
 		Email: email,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Local().Add(time.Minute * time.Duration(j.ExpirationMinutes)).Unix(),
+			// Set ExpiresAt to zero or remove it to create a token without expiration
+			ExpiresAt: 0,
 			Issuer:    j.Issuer,
 		},
 	}
@@ -47,7 +46,8 @@ func (j *JwtWrapper) RefreshToken(email string) (signedtoken string, err error) 
 	claims := &JwtClaim{
 		Email: email,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Local().Add(time.Hour * time.Duration(j.ExpirationHours)).Unix(),
+			// Set ExpiresAt to zero or remove it to create a token without expiration
+			ExpiresAt: 0,
 			Issuer:    j.Issuer,
 		},
 	}
@@ -77,9 +77,9 @@ func (j *JwtWrapper) ValidateToken(signedToken string) (claims *JwtClaim, err er
 		err = errors.New("Couldn't parse claims")
 		return
 	}
-	if claims.ExpiresAt < time.Now().Local().Unix() {
-		err = errors.New("JWT is expired")
-		return
-	}
+	//if claims.ExpiresAt < time.Now().Local().Unix() {
+	//	err = errors.New("JWT is expired")
+	//	return
+	//}
 	return
 }
