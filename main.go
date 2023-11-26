@@ -24,7 +24,7 @@ func main() {
 	// Set up the router
 	r := setupRouter()
 	// Start the server
-	r.Run(":8181")
+	r.Run(":8080")
 }
 
 // setupRouter sets up the router and adds the routes.
